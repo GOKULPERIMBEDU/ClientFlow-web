@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 400px at 80% -10%, rgba(20, 184, 166, 0.12), transparent 55%),
+    linear-gradient(180deg, #f7f4ee 0%, #efeae1 100%);
+  color: #101827;
+}
+
+@keyframes guide-overlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes guide-panel {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.guide-overlay {
+  animation: guide-overlay 180ms ease-out;
+}
+
+.guide-panel {
+  animation: guide-panel 280ms ease-out;
+}
+
+@media print {
+  aside,
+  header,
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .invoice-sheet {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
