@@ -35,7 +35,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
     try {
       const next = await api.users.list();
       setMembers(next);

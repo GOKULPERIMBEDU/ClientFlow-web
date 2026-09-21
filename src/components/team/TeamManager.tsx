@@ -21,7 +21,7 @@ const emptyForm: CreateTeamMemberInput = {
 
 export function TeamManager() {
   const { notify } = useToast();
-  const { isAdmin, refresh: refreshTeam } = useTeam();
+  const { isAdmin, loading: teamLoading, refresh: refreshTeam } = useTeam();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [open, setOpen] = useState(false);
@@ -107,15 +107,13 @@ export function TeamManager() {
     }
   };
 
-  if (error) {
+  if (error && members.length === 0) {
     return <ApiError message={error} onRetry={() => void reload()} />;
   }
 
-  if (loading && members.length === 0) {
-    return <p className="text-sm text-slate-500">Loading team...</p>;
-  }
+  const pending = teamLoading || (loading && members.length === 0);
 
-  if (!isAdmin) {
+  if (!pending && !isAdmin) {
     return (
       <Card className="p-6">
         <p className="text-sm text-slate-600">Team management is available to Admin users only.</p>
@@ -127,11 +125,11 @@ export function TeamManager() {
     <>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-slate-500">
-          {loading
+          {pending
             ? "Loading team..."
             : `${workspaceMembers.length} ${workspaceMembers.length === 1 ? "member" : "members"} in the workspace`}
         </p>
-        <Button onClick={() => setOpen(true)}>
+        <Button onClick={() => setOpen(true)} disabled={pending}>
           <UserPlus className="h-4 w-4" />
           Invite member
         </Button>
@@ -151,7 +149,7 @@ export function TeamManager() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {pending ? (
                 <tr>
                   <td className="px-4 py-8 text-slate-500" colSpan={4}>
                     Fetching team from MongoDB...

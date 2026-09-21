@@ -28,9 +28,10 @@ export function Sidebar() {
   const { pathname } = useLocation();
   const { profile } = useProfile();
   const { openGuide } = useGuide();
-  const { members, currentUser, isAdmin, setCurrentUserId } = useTeam();
+  const { members, currentUser, isAdmin, loading, setCurrentUserId } = useTeam();
   const companyName = profile?.companyName ?? "";
   const role = currentUser ? (isAdmin ? "Admin" : "Member") : (profile?.role ?? "");
+  const showAdminNav = loading || isAdmin;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-white/5 bg-ink-950 text-ink-50 lg:flex">
@@ -62,7 +63,7 @@ export function Sidebar() {
 
       <nav className="mt-2 flex-1 space-y-1 px-3">
         {nav
-          .filter((item) => !item.adminOnly || isAdmin)
+          .filter((item) => !item.adminOnly || showAdminNav)
           .map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
@@ -113,6 +114,8 @@ export function Sidebar() {
               ))}
             </select>
           </label>
+        ) : loading ? (
+          <div className="h-[46px]" aria-hidden />
         ) : null}
       </div>
     </aside>
