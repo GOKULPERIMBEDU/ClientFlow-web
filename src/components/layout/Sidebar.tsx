@@ -1,20 +1,18 @@
-"use client";
-
 import { cn } from "@/lib/cn";
 import { useGuide } from "@/context/GuideContext";
 import { useProfile } from "@/context/ProfileContext";
-import { FALLBACK_PROFILE } from "@/lib/profile-display";
+import { useTeam } from "@/context/TeamContext";
 import {
   BookOpen,
   ClipboardCheck,
   FolderKanban,
   LayoutDashboard,
   Receipt,
+  UserCog,
   UserRound,
   Users,
 } from "lucide-react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router-dom";
 
 const nav = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -22,15 +20,17 @@ const nav = [
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/tasks", label: "Kanban", icon: ClipboardCheck },
   { href: "/invoices", label: "Invoices", icon: Receipt },
+  { href: "/team", label: "Team", icon: UserCog, adminOnly: true },
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
 export function Sidebar() {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const { profile } = useProfile();
   const { openGuide } = useGuide();
-  const companyName = profile?.companyName || FALLBACK_PROFILE.companyName;
-  const role = profile?.role || FALLBACK_PROFILE.role;
+  const { members, currentUser, isAdmin, setCurrentUserId } = useTeam();
+  const companyName = profile?.companyName ?? "";
+  const role = currentUser ? (isAdmin ? "Admin" : "Member") : (profile?.role ?? "");
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-white/5 bg-ink-950 text-ink-50 lg:flex">
@@ -61,25 +61,27 @@ export function Sidebar() {
       </div>
 
       <nav className="mt-2 flex-1 space-y-1 px-3">
-        {nav.map((item) => {
-          const active = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
-                active
-                  ? "bg-white/10 text-white shadow-inner"
-                  : "text-slate-400 hover:bg-white/5 hover:text-white",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          );
-        })}
+        {nav
+          .filter((item) => !item.adminOnly || isAdmin)
+          .map((item) => {
+            const active = pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+                  active
+                    ? "bg-white/10 text-white shadow-inner"
+                    : "text-slate-400 hover:bg-white/5 hover:text-white",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            );
+          })}
         <button
           type="button"
           onClick={openGuide}
@@ -90,11 +92,33 @@ export function Sidebar() {
         </button>
       </nav>
 
-      <div className="m-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Workspace</p>
-        <p className="mt-1 text-sm font-semibold text-white">{companyName}</p>
-        <p className="mt-1 text-xs text-slate-400">{role}</p>
+      <div className="m-4 space-y-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Workspace</p>
+          <p className="mt-1 text-sm font-semibold text-white">{companyName}</p>
+          <p className="mt-1 text-xs text-slate-400">{role}</p>
+        </div>
+        {members.length > 0 ? (
+          <label className="block">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Acting as</span>
+            <select
+              value={currentUser?.id ?? ""}
+              onChange={(event) => setCurrentUserId(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-white/10 bg-ink-950 px-2 py-1.5 text-xs text-white outline-none"
+            >
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name} ({isAdminRoleLabel(member.role)})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </div>
     </aside>
   );
+}
+
+function isAdminRoleLabel(role: string) {
+  return role === "admin" || role === "lead" ? "Admin" : "Member";
 }

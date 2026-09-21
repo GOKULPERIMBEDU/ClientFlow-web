@@ -1,5 +1,5 @@
 import { ClientManager } from "@/components/clients/ClientManager";
 
-export default function ClientsPage() {
+export function ClientsPage() {
   return <ClientManager />;
 }

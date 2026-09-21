@@ -1,5 +1,5 @@
 import { ProjectManager } from "@/components/projects/ProjectManager";
 
-export default function ProjectsPage() {
+export function ProjectsPage() {
   return <ProjectManager />;
 }

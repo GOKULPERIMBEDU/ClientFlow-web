@@ -1,5 +1,3 @@
-"use client";
-
 import { ActionHint } from "@/components/guide/InfoTip";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -7,10 +5,12 @@ import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { TeamMultiSelect } from "@/components/projects/TeamMultiSelect";
+import { useTeam } from "@/context/TeamContext";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { Client, CreateProjectInput, Project, ProjectStatus } from "@/types/domain";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Users } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 const emptyForm: CreateProjectInput = {
@@ -22,28 +22,34 @@ const emptyForm: CreateProjectInput = {
   currency: "USD",
   startDate: "2026-09-21",
   endDate: "2026-12-21",
+  assignedTeam: [],
 };
 
 export function ProjectManager() {
   const { notify } = useToast();
+  const { currentUser, isAdmin, members, refresh, visibleProjects } = useTeam();
   const [projects, setProjects] = useState<Project[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [open, setOpen] = useState(false);
+  const [teamProject, setTeamProject] = useState<Project | null>(null);
+  const [teamIds, setTeamIds] = useState<string[]>([]);
+  const [savingTeam, setSavingTeam] = useState(false);
   const [form, setForm] = useState<CreateProjectInput>(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    const [nextProjects, nextClients] = await Promise.all([api.projects.list(), api.clients.list()]);
-    setProjects(nextProjects);
+    const userId = currentUser && !isAdmin ? currentUser.id : undefined;
+    const [nextProjects, nextClients] = await Promise.all([api.projects.list(userId), api.clients.list()]);
+    setProjects(visibleProjects(nextProjects));
     setClients(nextClients);
     setForm((current) => ({
       ...current,
       clientId: current.clientId || nextClients[0]?.id || "",
     }));
     setError(null);
-  }, []);
+  }, [currentUser, isAdmin, visibleProjects]);
 
   useEffect(() => {
     setLoading(true);
@@ -60,10 +66,11 @@ export function ProjectManager() {
     event.preventDefault();
     setSaving(true);
     try {
-      await api.projects.create({ ...form, budget: Number(form.budget) });
+      await api.projects.create({ ...form, budget: Number(form.budget), assignedTeam: form.assignedTeam ?? [] });
       setOpen(false);
       setForm({ ...emptyForm, clientId: clients[0]?.id || "" });
       await load();
+      await refresh();
       notify("Project created");
     } catch (reason) {
       notify(reason instanceof Error ? reason.message : "Unable to create project", "error");
@@ -85,6 +92,40 @@ export function ProjectManager() {
   const clientName = (clientId: string) =>
     clients.find((client) => client.id === clientId)?.company ?? "Unknown client";
 
+  const openTeamAccess = (project: Project) => {
+    setTeamProject(project);
+    setTeamIds(project.assignedTeam ?? []);
+  };
+
+  const saveTeamAccess = async () => {
+    if (!teamProject) {
+      return;
+    }
+    setSavingTeam(true);
+    try {
+      await api.projects.update(teamProject.id, { assignedTeam: teamIds });
+      setTeamProject(null);
+      await load();
+      await refresh();
+      notify("Project team updated");
+    } catch (reason) {
+      notify(reason instanceof Error ? reason.message : "Unable to update project team", "error");
+    } finally {
+      setSavingTeam(false);
+    }
+  };
+
+  const memberNames = (project: Project) => {
+    const ids = project.assignedTeam ?? [];
+    if (ids.length === 0) {
+      return "No members assigned";
+    }
+    return members
+      .filter((member) => ids.includes(member.id))
+      .map((member) => member.name)
+      .join(", ");
+  };
+
   return (
     <>
       <div className="mb-4 flex items-center justify-between">
@@ -95,7 +136,7 @@ export function ProjectManager() {
           title="New project"
           hint="POSTs to /api/projects with a clientId. Budget and status are stored in MongoDB and then read by the overview stats and Kanban project picker."
         >
-          <Button onClick={() => setOpen(true)} disabled={clients.length === 0}>
+          <Button onClick={() => setOpen(true)} disabled={clients.length === 0 || !isAdmin}>
             <Plus className="h-4 w-4" />
             New project
           </Button>
@@ -110,6 +151,11 @@ export function ProjectManager() {
         <Card className="p-6 text-sm text-slate-500">Fetching projects from MongoDB...</Card>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
+          {projects.length === 0 ? (
+            <Card className="p-6 text-sm text-slate-500">
+              No projects are assigned to this member. An admin can grant access from Team.
+            </Card>
+          ) : null}
           {projects.map((project) => (
             <Card key={project.id} className="p-5">
               <div className="flex items-start justify-between gap-3">
@@ -119,9 +165,11 @@ export function ProjectManager() {
                 </div>
                 <div className="flex items-center gap-1">
                   <Badge value={project.status} />
-                  <Button variant="ghost" onClick={() => void onDelete(project.id)} aria-label="Delete project">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {isAdmin ? (
+                    <Button variant="ghost" onClick={() => void onDelete(project.id)} aria-label="Delete project">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  ) : null}
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-slate-600">{project.description}</p>
@@ -131,6 +179,16 @@ export function ProjectManager() {
                   {formatDate(project.startDate)} – {formatDate(project.endDate)}
                 </span>
               </div>
+              <p className="mt-3 text-xs text-slate-500">
+                <span className="font-semibold text-slate-600">Team: </span>
+                {memberNames(project)}
+              </p>
+              {isAdmin ? (
+                <Button variant="secondary" className="mt-3" onClick={() => openTeamAccess(project)}>
+                  <Users className="h-4 w-4" />
+                  Manage Team Access
+                </Button>
+              ) : null}
             </Card>
           ))}
         </div>
@@ -171,6 +229,15 @@ export function ProjectManager() {
                 required
               />
             </Field>
+            <Field label="Currency">
+              <Select
+                value={form.currency}
+                onChange={(event) => setForm({ ...form, currency: event.target.value })}
+              >
+                <option value="USD">USD ($)</option>
+                <option value="INR">INR (₹)</option>
+              </Select>
+            </Field>
             <Field label="Status">
               <Select
                 value={form.status}
@@ -200,6 +267,11 @@ export function ProjectManager() {
               />
             </Field>
           </div>
+          <TeamMultiSelect
+            members={members}
+            selectedIds={form.assignedTeam ?? []}
+            onChange={(assignedTeam) => setForm({ ...form, assignedTeam })}
+          />
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="secondary" onClick={() => setOpen(false)}>
               Cancel
@@ -209,6 +281,23 @@ export function ProjectManager() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={Boolean(teamProject)} title="Manage Team Access" onClose={() => setTeamProject(null)}>
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Choose who can work on {teamProject?.name}. Only these members appear in the Delivery board assignee list.
+          </p>
+          <TeamMultiSelect members={members} selectedIds={teamIds} onChange={setTeamIds} />
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setTeamProject(null)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void saveTeamAccess()} disabled={savingTeam}>
+              {savingTeam ? "Saving..." : "Save access"}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </>
   );

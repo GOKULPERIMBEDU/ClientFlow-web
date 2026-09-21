@@ -1,5 +1,5 @@
 import { InvoiceGenerator } from "@/components/invoices/InvoiceGenerator";
 
-export default function InvoicesPage() {
+export function InvoicesPage() {
   return <InvoiceGenerator />;
 }

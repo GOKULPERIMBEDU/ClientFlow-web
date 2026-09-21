@@ -1,11 +1,10 @@
-"use client";
-
 import { ActionHint, InfoTip } from "@/components/guide/InfoTip";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
+import { useProfile } from "@/context/ProfileContext";
 import { api } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { Client, Invoice, InvoiceItem } from "@/types/domain";
@@ -25,6 +24,7 @@ function nextInvoiceNumber(): string {
 
 export function InvoiceGenerator() {
   const { notify } = useToast();
+  const { profile } = useProfile();
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [selectedId, setSelectedId] = useState<string | "new">("new");
@@ -287,7 +287,9 @@ export function InvoiceGenerator() {
           <div className="flex items-start justify-between">
             <div>
               <p className="font-display text-3xl text-ink-950">ClientFlow</p>
-              <p className="mt-1 text-sm text-slate-500">Atelier North · Professional services</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {profile?.companyName ? `${profile.companyName} · Professional services` : "Professional services"}
+              </p>
             </div>
             <div className="text-right">
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Invoice</p>

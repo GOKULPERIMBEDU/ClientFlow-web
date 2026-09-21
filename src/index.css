@@ -1,0 +1,198 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --font-jakarta: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-fraunces: "Fraunces", Georgia, serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(1200px 400px at 80% -10%, rgba(20, 184, 166, 0.12), transparent 55%),
+    linear-gradient(180deg, #f7f4ee 0%, #efeae1 100%);
+  color: #101827;
+}
+
+@keyframes guide-overlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes guide-panel {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.guide-overlay {
+  animation: guide-overlay 180ms ease-out;
+}
+
+.guide-panel {
+  animation: guide-panel 280ms ease-out;
+}
+
+.comment-html p {
+  margin: 0 0 0.5rem;
+}
+
+.comment-html p:last-child {
+  margin-bottom: 0;
+}
+
+.comment-html ul,
+.comment-html ol {
+  margin: 0.25rem 0 0.5rem 1.25rem;
+}
+
+.comment-html img {
+  max-height: 12rem;
+  border-radius: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.comment-html .mention,
+.tiptap .mention {
+  border-radius: 0.4rem;
+  background: rgba(13, 148, 136, 0.12);
+  color: #0f766e;
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.comment-file-card {
+  position: relative;
+  display: flex;
+  max-width: 22rem;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #e8e1d5;
+  border-radius: 0.9rem;
+  background: #fff;
+  padding: 0.55rem 0.7rem;
+}
+
+.comment-file-card.is-selected {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.comment-file-thumb {
+  height: 3rem;
+  width: 3rem;
+  border-radius: 0.55rem;
+  object-fit: cover;
+  background: #f4efe6;
+}
+
+.comment-html .comment-file-card img,
+.tiptap .comment-file-card img {
+  max-height: 3rem;
+  margin: 0;
+}
+
+.comment-file-icon {
+  display: flex;
+  height: 3rem;
+  width: 3rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  border-radius: 0.55rem;
+  background: #ecfdf5;
+  color: #0f766e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.comment-file-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.comment-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #101827;
+}
+
+.comment-file-time {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.comment-file-actions {
+  position: absolute;
+  top: -0.75rem;
+  right: 0.45rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.2rem;
+  border: 1px solid #e8e1d5;
+  border-radius: 0.7rem;
+  background: #fff;
+  padding: 0.2rem;
+  box-shadow: 0 8px 20px rgba(16, 24, 39, 0.08);
+}
+
+.comment-file-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.comment-file-actions button:hover {
+  background: #f7f4ee;
+}
+
+@media print {
+  aside,
+  header,
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  .invoice-sheet {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

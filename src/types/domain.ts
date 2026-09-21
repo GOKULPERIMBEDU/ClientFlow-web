@@ -1,7 +1,20 @@
 export type ClientStatus = "active" | "onboarding" | "paused" | "archived";
 export type ProjectStatus = "planning" | "active" | "on_hold" | "completed" | "cancelled";
-export type TaskStatus = "todo" | "in_progress" | "review" | "done";
+export type TaskStatus =
+  | "backlog"
+  | "todo"
+  | "in_progress"
+  | "testing_qa"
+  | "client_review"
+  | "completed";
 export type InvoiceStatus = "draft" | "sent" | "paid";
+export type UserRole = "admin" | "lead" | "member";
+export type TaskActionType = "created" | "status" | "assignee" | "comment" | "update" | "attachment" | "worklog";
+export const DEFAULT_TASK_STATUS: TaskStatus = "backlog";
+
+export function isAdminRole(role?: UserRole | string | null): boolean {
+  return role === "admin" || role === "lead";
+}
 
 export interface Client {
   id: string;
@@ -26,8 +39,60 @@ export interface Project {
   currency: string;
   startDate: string;
   endDate: string;
+  assignedTeam: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  url: string;
+  createdAt: string;
+}
+
+export interface TaskComment {
+  id: string;
+  author: string;
+  authorId: string;
+  body: string;
+  content: string;
+  attachments: TaskAttachment[];
+  mentions: string[];
+  createdAt: string;
+}
+
+export interface TaskActivity {
+  id: string;
+  type: TaskActionType;
+  actionType: TaskActionType;
+  userId: string;
+  userName: string;
+  author: string;
+  oldValue: string;
+  newValue: string;
+  message: string;
+  timestamp: string;
+  createdAt: string;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  assignedProjects: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTeamMemberInput {
+  name: string;
+  email: string;
+  role?: UserRole;
+  assignedProjects?: string[];
 }
 
 export interface Task {
@@ -37,6 +102,14 @@ export interface Task {
   projectName: string;
   assignee: string;
   status: TaskStatus;
+  description: string;
+  dueDate: string;
+  estimatedHours: number;
+  spentHours: number;
+  attachments: TaskAttachment[];
+  comments: TaskComment[];
+  activity: TaskActivity[];
+  activityLog: TaskActivity[];
   createdAt: string;
   updatedAt: string;
 }
@@ -103,6 +176,7 @@ export interface CreateProjectInput {
   currency?: string;
   startDate: string;
   endDate: string;
+  assignedTeam?: string[];
 }
 
 export interface CreateTaskInput {
@@ -110,6 +184,18 @@ export interface CreateTaskInput {
   projectId: string;
   assignee?: string;
   status?: TaskStatus;
+  description?: string;
+  dueDate?: string;
+  estimatedHours?: number;
+  spentHours?: number;
+  actorId?: string;
+  actorName?: string;
+}
+
+export interface UpdateTaskInput extends Partial<CreateTaskInput> {
+  actor?: string;
+  actorId?: string;
+  actorName?: string;
 }
 
 export interface CreateInvoiceInput {
@@ -144,8 +230,19 @@ export interface ApiFailure {
 }
 
 export const TASK_COLUMNS: { id: TaskStatus; title: string }[] = [
-  { id: "todo", title: "To do" },
-  { id: "in_progress", title: "In progress" },
-  { id: "review", title: "Review" },
-  { id: "done", title: "Done" },
+  { id: "backlog", title: "Backlog" },
+  { id: "todo", title: "To Do" },
+  { id: "in_progress", title: "In Progress" },
+  { id: "testing_qa", title: "Testing / QA" },
+  { id: "client_review", title: "Client Review" },
+  { id: "completed", title: "Completed" },
 ];
+
+export const STATUS_LABELS = Object.fromEntries(TASK_COLUMNS.map((column) => [column.id, column.title])) as Record<
+  TaskStatus,
+  string
+>;
+
+export function statusLabel(status: string): string {
+  return STATUS_LABELS[status as TaskStatus] ?? status;
+}

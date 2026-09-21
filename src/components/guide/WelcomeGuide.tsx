@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/Button";
 import { useGuide } from "@/context/GuideContext";
 import {
@@ -28,7 +26,7 @@ const modules = [
     icon: ClipboardCheck,
     title: "Kanban Delivery Board",
     tag: "Workflow tracking",
-    body: "Add cards via POST /api/tasks, then drag them To do → Done. Each drop PUTs the new status so delivery state is stored, not just local.",
+    body: "Add cards via POST /api/tasks, then drag them Backlog → Completed. Click a card to open the Jira-style ticket panel for description, attachments, due dates, and comments.",
   },
   {
     icon: Receipt,
@@ -94,7 +92,7 @@ export function WelcomeGuide() {
           <section>
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-aqua-700">How it works</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              The Next.js dashboard talks to a layered Express API. Each module below is live: create, update,
+              The React dashboard talks to a layered Express API. Each module below is live: create, update,
               and move work, and it persists.
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">

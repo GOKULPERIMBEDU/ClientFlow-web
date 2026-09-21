@@ -1,5 +1,3 @@
-"use client";
-
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Field";
@@ -59,7 +57,6 @@ export function ProfileSettings() {
     <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[280px_1fr]">
       <Card className="p-6 text-center">
         {form.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={form.avatarUrl}
             alt=""

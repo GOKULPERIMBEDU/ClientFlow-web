@@ -1,15 +1,16 @@
-"use client";
-
 import { InfoTip } from "@/components/guide/InfoTip";
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Field";
+import { cn } from "@/lib/cn";
 import {
   WORLD_CLOCKS,
   convertWallTime,
   formatDateInZone,
   formatInZone,
+  getLocalTimeZone,
   getZoneOffset,
+  matchWorldClock,
 } from "@/lib/timezone";
 
 function toDateTimeLocal(date: Date): string {
@@ -19,12 +20,14 @@ function toDateTimeLocal(date: Date): string {
 
 export function TimezoneWidget() {
   const [now, setNow] = useState<Date | null>(null);
+  const [localTimeZone, setLocalTimeZone] = useState("");
   const [sourceZone, setSourceZone] = useState(WORLD_CLOCKS[2]?.zone ?? "Europe/London");
   const [sourceTime, setSourceTime] = useState("");
 
   useEffect(() => {
     const tick = () => setNow(new Date());
     tick();
+    setLocalTimeZone(getLocalTimeZone());
     setSourceTime(toDateTimeLocal(new Date()));
     const timer = window.setInterval(tick, 1000);
     return () => window.clearInterval(timer);
@@ -33,6 +36,11 @@ export function TimezoneWidget() {
   const converted = useMemo(
     () => (sourceTime ? convertWallTime(sourceTime, sourceZone) : null),
     [sourceTime, sourceZone],
+  );
+
+  const localClock = useMemo(
+    () => (localTimeZone ? matchWorldClock(localTimeZone) : undefined),
+    [localTimeZone],
   );
 
   return (
@@ -53,23 +61,46 @@ export function TimezoneWidget() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {WORLD_CLOCKS.map((city) => (
-          <div
-            key={city.id}
-            className="rounded-2xl border border-ink-100 bg-gradient-to-b from-white to-aqua-50/40 p-4"
-          >
-            <p className="text-xs font-semibold uppercase tracking-wide text-aqua-700">{city.label}</p>
-            <p className="mt-2 font-display text-3xl tabular-nums text-ink-950">
-              {now ? formatInZone(now, city.zone) : "--:--:--"}
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              {now ? formatDateInZone(now, city.zone) : "Loading"}
-            </p>
-            <p className="mt-2 text-[11px] text-slate-400">
-              {now ? `${city.city} · ${getZoneOffset(now, city.zone)}` : city.offsetHint}
-            </p>
-          </div>
-        ))}
+        {WORLD_CLOCKS.map((city) => {
+          const isLocal = localClock?.id === city.id;
+          return (
+            <div
+              key={city.id}
+              aria-current={isLocal ? "true" : undefined}
+              className={cn(
+                "rounded-2xl border p-4",
+                isLocal
+                  ? "border-aqua-500 bg-aqua-50 ring-2 ring-aqua-500/20"
+                  : "border-ink-100 bg-gradient-to-b from-white to-aqua-50/40",
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p
+                  className={cn(
+                    "text-xs font-semibold uppercase tracking-wide",
+                    isLocal ? "text-aqua-800" : "text-aqua-700",
+                  )}
+                >
+                  {city.label}
+                </p>
+                {isLocal ? (
+                  <span className="rounded-full bg-aqua-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-950">
+                    Local
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-2 font-display text-2xl tabular-nums text-ink-950 sm:text-3xl">
+                {now ? formatInZone(now, city.zone) : "--:--:-- --"}
+              </p>
+              <p className="mt-1 text-sm text-slate-500">
+                {now ? formatDateInZone(now, city.zone) : "Loading"}
+              </p>
+              <p className="mt-2 text-[11px] text-slate-400">
+                {now ? `${city.city} · ${getZoneOffset(now, city.zone)}` : city.offsetHint}
+              </p>
+            </div>
+          );
+        })}
       </div>
 
       <div className="mt-5 grid gap-3 rounded-2xl bg-ink-950 p-4 text-white sm:grid-cols-[1fr_1fr_auto]">
@@ -108,7 +139,7 @@ export function TimezoneWidget() {
             <div key={`converted-${city.id}`} className="rounded-xl bg-white/5 px-3 py-2">
               <p className="text-[11px] uppercase tracking-wide text-slate-400">{city.label}</p>
               <p className="mt-1 text-lg font-semibold tabular-nums">
-                {converted ? formatInZone(converted, city.zone, false) : "--:--"}
+                {converted ? formatInZone(converted, city.zone, false) : "--:-- --"}
               </p>
             </div>
           ))}

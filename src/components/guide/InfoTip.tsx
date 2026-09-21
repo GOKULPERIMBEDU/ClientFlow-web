@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/lib/cn";
 import { CircleHelp } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";

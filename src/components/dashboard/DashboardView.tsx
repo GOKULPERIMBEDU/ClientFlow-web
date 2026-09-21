@@ -1,15 +1,15 @@
-"use client";
-
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { TimezoneWidget } from "@/components/dashboard/TimezoneWidget";
 import { RecentWork } from "@/components/dashboard/RecentWork";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
+import { useTeam } from "@/context/TeamContext";
 import type { Client, Invoice, Project } from "@/types/domain";
 import { CircleDollarSign, FolderKanban, Receipt, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 export function DashboardView() {
+  const { currentUser, isAdmin, visibleProjects } = useTeam();
   const [clients, setClients] = useState<Client[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -17,23 +17,30 @@ export function DashboardView() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.clients.list(), api.projects.list(), api.invoices.list()])
+    const userId = currentUser && !isAdmin ? currentUser.id : undefined;
+    Promise.all([api.clients.list(), api.projects.list(userId), api.invoices.list()])
       .then(([nextClients, nextProjects, nextInvoices]) => {
         setClients(nextClients);
-        setProjects(nextProjects);
+        setProjects(visibleProjects(nextProjects));
         setInvoices(nextInvoices);
       })
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : "Unable to load workspace data");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [currentUser, isAdmin, visibleProjects]);
 
   const stats = useMemo(() => {
     const activeProjects = projects.filter((project) => project.status === "active").length;
-    const pipeline = projects
+    const pipelineByCurrency = projects
       .filter((project) => project.status !== "cancelled")
-      .reduce((sum, project) => sum + project.budget, 0);
+      .reduce<Record<string, number>>((totals, project) => {
+        totals[project.currency] = (totals[project.currency] ?? 0) + project.budget;
+        return totals;
+      }, {});
+    const pipeline = Object.entries(pipelineByCurrency)
+      .map(([currency, amount]) => formatCurrency(amount, currency))
+      .join(" · ") || formatCurrency(0);
     const invoiced = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
     const onboarding = clients.filter((client) => client.status === "onboarding").length;
 
@@ -65,7 +72,7 @@ export function DashboardView() {
         />
         <StatsCard
           label="Pipeline"
-          value={formatCurrency(stats.pipeline)}
+          value={stats.pipeline}
           hint="Open and scheduled retainers"
           icon={CircleDollarSign}
         />

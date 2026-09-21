@@ -38,13 +38,26 @@ export const WORLD_CLOCKS: TimeZoneCity[] = [
 ];
 
 export function formatInZone(date: Date, timeZone: string, withSeconds = true): string {
-  return new Intl.DateTimeFormat("en-GB", {
+  const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
     hour: "2-digit",
     minute: "2-digit",
     second: withSeconds ? "2-digit" : undefined,
-    hour12: false,
-  }).format(date);
+    hour12: true,
+  }).formatToParts(date);
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  const hour = get("hour").padStart(2, "0");
+  const minute = get("minute").padStart(2, "0");
+  const period = get("dayPeriod").toUpperCase();
+
+  if (!withSeconds) {
+    return `${hour}:${minute} ${period}`;
+  }
+
+  return `${hour}:${minute}:${get("second").padStart(2, "0")} ${period}`;
 }
 
 export function formatDateInZone(date: Date, timeZone: string): string {
@@ -63,6 +76,21 @@ export function getZoneOffset(date: Date, timeZone: string): string {
   }).formatToParts(date);
 
   return parts.find((part) => part.type === "timeZoneName")?.value ?? timeZone;
+}
+
+export function getLocalTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+function zonesShareOffsetYearRound(a: string, b: string): boolean {
+  if (a === b) return true;
+  const year = new Date().getUTCFullYear();
+  const samples = [new Date(Date.UTC(year, 0, 15, 12)), new Date(Date.UTC(year, 6, 15, 12))];
+  return samples.every((instant) => zoneOffsetMs(instant, a) === zoneOffsetMs(instant, b));
+}
+
+export function matchWorldClock(timeZone: string): TimeZoneCity | undefined {
+  return WORLD_CLOCKS.find((city) => city.zone === timeZone || zonesShareOffsetYearRound(city.zone, timeZone));
 }
 
 function zoneOffsetMs(instant: Date, timeZone: string): number {

@@ -1,5 +1,3 @@
-"use client";
-
 import { ActionHint } from "@/components/guide/InfoTip";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -129,8 +127,8 @@ export function ClientManager() {
                       <p className="font-medium text-ink-900">{client.name}</p>
                       <p className="text-xs text-slate-500">{client.email}</p>
                     </td>
-                    <td className="px-4 py-3">{client.company}</td>
-                    <td className="px-4 py-3">{client.timezone}</td>
+                    <td className="whitespace-nowrap px-4 py-3">{client.company}</td>
+                    <td className="whitespace-nowrap px-4 py-3">{client.timezone}</td>
                     <td className="px-4 py-3">{client.industry}</td>
                     <td className="px-4 py-3">
                       <Badge value={client.status} />
