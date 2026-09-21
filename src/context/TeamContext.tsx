@@ -29,54 +29,30 @@ function pickCurrentUser(members: TeamMember[], profileEmail?: string | null): T
 }
 
 export function TeamProvider({ children }: { children: ReactNode }) {
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile } = useProfile();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [currentUserId, setCurrentUserIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const applyMembers = useCallback((next: TeamMember[], email?: string | null) => {
-    setMembers(next);
-    setCurrentUserIdState((current) => {
-      if (current && next.some((member) => member.id === current)) {
-        return current;
-      }
-      return pickCurrentUser(next, email)?.id ?? null;
-    });
-  }, []);
-
   const refresh = useCallback(async () => {
-    const next = await api.users.list();
-    applyMembers(next, profile?.email);
-  }, [applyMembers, profile?.email]);
+    setLoading(true);
+    try {
+      const next = await api.users.list();
+      setMembers(next);
+      setCurrentUserIdState((current) => {
+        if (current && next.some((member) => member.id === current)) {
+          return current;
+        }
+        return pickCurrentUser(next, profile?.email)?.id ?? null;
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [profile?.email]);
 
   useEffect(() => {
-    if (profileLoading) {
-      return;
-    }
-
-    let cancelled = false;
-    void api.users
-      .list()
-      .then((next) => {
-        if (!cancelled) {
-          applyMembers(next, profile?.email);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setMembers([]);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [applyMembers, profile?.email, profileLoading]);
+    void refresh();
+  }, [refresh]);
 
   const setCurrentUserId = useCallback((id: string) => {
     setCurrentUserIdState(id);

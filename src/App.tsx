@@ -7,28 +7,12 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { ProjectsPage } from "@/pages/ProjectsPage";
 import { TasksPage } from "@/pages/TasksPage";
 import { TeamPage } from "@/pages/TeamPage";
-import { useEffect } from "react";
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-
-function RedirectHashRoutes() {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash.startsWith("#/")) {
-      return;
-    }
-    navigate(hash.slice(1), { replace: true });
-  }, [navigate]);
-
-  return null;
-}
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 
 export default function App() {
   return (
     <Providers>
       <BrowserRouter>
-        <RedirectHashRoutes />
         <Routes>
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<OverviewPage />} />

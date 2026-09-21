@@ -3,7 +3,6 @@ import { useGuide } from "@/context/GuideContext";
 import { useProfile } from "@/context/ProfileContext";
 import { useTeam } from "@/context/TeamContext";
 import { initialsFromName } from "@/lib/format";
-import { normalizePathname } from "@/lib/route";
 import {
   BookOpen,
   ClipboardCheck,
@@ -39,17 +38,15 @@ const mobileNav = [
 ];
 
 export function Header() {
-  const { pathname: rawPathname } = useLocation();
-  const pathname = normalizePathname(rawPathname);
+  const { pathname } = useLocation();
   const meta = titles[pathname] ?? titles["/"];
   const [open, setOpen] = useState(false);
   const { profile } = useProfile();
-  const { isAdmin, loading: teamLoading } = useTeam();
+  const { isAdmin } = useTeam();
   const { openGuide } = useGuide();
   const name = profile?.name ?? "";
   const subtitle = profile?.role ?? "";
   const initials = initialsFromName(name || "Client Flow");
-  const showAdminNav = teamLoading || isAdmin;
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-100/70 bg-canvas/85 backdrop-blur">
@@ -90,7 +87,7 @@ export function Header() {
       {open ? (
         <div className="grid grid-cols-6 gap-1 border-t border-ink-100 px-3 py-2 lg:hidden">
           {mobileNav
-            .filter((item) => !item.adminOnly || showAdminNav)
+            .filter((item) => !item.adminOnly || isAdmin)
             .map((item) => {
             const Icon = item.icon;
             return (

@@ -2,7 +2,6 @@ import { cn } from "@/lib/cn";
 import { useGuide } from "@/context/GuideContext";
 import { useProfile } from "@/context/ProfileContext";
 import { useTeam } from "@/context/TeamContext";
-import { normalizePathname } from "@/lib/route";
 import {
   BookOpen,
   ClipboardCheck,
@@ -26,14 +25,12 @@ const nav = [
 ];
 
 export function Sidebar() {
-  const { pathname: rawPathname } = useLocation();
-  const pathname = normalizePathname(rawPathname);
+  const { pathname } = useLocation();
   const { profile } = useProfile();
   const { openGuide } = useGuide();
-  const { members, currentUser, isAdmin, loading, setCurrentUserId } = useTeam();
+  const { members, currentUser, isAdmin, setCurrentUserId } = useTeam();
   const companyName = profile?.companyName ?? "";
   const role = currentUser ? (isAdmin ? "Admin" : "Member") : (profile?.role ?? "");
-  const showAdminNav = loading || isAdmin;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 flex-col border-r border-white/5 bg-ink-950 text-ink-50 lg:flex">
@@ -65,7 +62,7 @@ export function Sidebar() {
 
       <nav className="mt-2 flex-1 space-y-1 px-3">
         {nav
-          .filter((item) => !item.adminOnly || showAdminNav)
+          .filter((item) => !item.adminOnly || isAdmin)
           .map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
