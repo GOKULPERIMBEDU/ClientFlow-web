@@ -11,7 +11,13 @@ interface GuideContextValue {
 const GuideContext = createContext<GuideContextValue | null>(null);
 
 export function GuideProvider({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => {
+    try {
+      return window.localStorage.getItem(STORAGE_KEY) !== "1";
+    } catch {
+      return true;
+    }
+  });
 
   const openGuide = useCallback(() => setOpen(true), []);
 
@@ -24,16 +30,6 @@ export function GuideProvider({ children }: { children: ReactNode }) {
       }
     }
     setOpen(false);
-  }, []);
-
-  useEffect(() => {
-    try {
-      if (window.localStorage.getItem(STORAGE_KEY) !== "1") {
-        setOpen(true);
-      }
-    } catch {
-      setOpen(true);
-    }
   }, []);
 
   useEffect(() => {
