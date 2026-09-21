@@ -1,3 +1,4 @@
+import { ApiError } from "@/components/ui/ApiError";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -27,6 +28,7 @@ export function TeamManager() {
   const [form, setForm] = useState<CreateTeamMemberInput>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const workspaceMembers = useMemo(
     () => members.filter((member) => member.role === "member" && !isAdminRole(member.role)),
@@ -42,16 +44,23 @@ export function TeamManager() {
     const [nextMembers, nextProjects] = await Promise.all([api.users.list(), api.projects.list()]);
     setMembers(nextMembers);
     setProjects(nextProjects);
+    setError(null);
   }, []);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     setLoading(true);
-    load()
+    return load()
       .catch((reason: unknown) => {
-        notify(reason instanceof Error ? reason.message : "Unable to load the team", "error");
+        const message = reason instanceof Error ? reason.message : "Unable to load the team";
+        setError(message);
+        notify(message, "error");
       })
       .finally(() => setLoading(false));
   }, [load, notify]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -98,6 +107,14 @@ export function TeamManager() {
     }
   };
 
+  if (error) {
+    return <ApiError message={error} onRetry={() => void reload()} />;
+  }
+
+  if (loading && members.length === 0) {
+    return <p className="text-sm text-slate-500">Loading team...</p>;
+  }
+
   if (!isAdmin) {
     return (
       <Card className="p-6">
@@ -119,6 +136,8 @@ export function TeamManager() {
           Invite member
         </Button>
       </div>
+
+      {error ? <ApiError className="mb-4" message={error} onRetry={() => void reload()} /> : null}
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

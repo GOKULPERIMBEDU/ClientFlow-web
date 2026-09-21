@@ -1,4 +1,5 @@
 import { ActionHint } from "@/components/guide/InfoTip";
+import { ApiError } from "@/components/ui/ApiError";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -35,9 +36,9 @@ export function ClientManager() {
     setError(null);
   }, []);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     setLoading(true);
-    load()
+    return load()
       .catch((reason: unknown) => {
         const message = reason instanceof Error ? reason.message : "Unable to load clients";
         setError(message);
@@ -45,6 +46,10 @@ export function ClientManager() {
       })
       .finally(() => setLoading(false));
   }, [load, notify]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -90,9 +95,7 @@ export function ClientManager() {
         </ActionHint>
       </div>
 
-      {error ? (
-        <p className="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">{error}</p>
-      ) : null}
+      {error ? <ApiError className="mb-4" message={error} onRetry={() => void reload()} /> : null}
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">

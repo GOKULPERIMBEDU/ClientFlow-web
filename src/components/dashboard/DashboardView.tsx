@@ -1,12 +1,13 @@
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { TimezoneWidget } from "@/components/dashboard/TimezoneWidget";
 import { RecentWork } from "@/components/dashboard/RecentWork";
+import { ApiError } from "@/components/ui/ApiError";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { useTeam } from "@/context/TeamContext";
 import type { Client, Invoice, Project } from "@/types/domain";
 import { CircleDollarSign, FolderKanban, Receipt, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function DashboardView() {
   const { currentUser, isAdmin, visibleProjects } = useTeam();
@@ -16,9 +17,11 @@ export function DashboardView() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     const userId = currentUser && !isAdmin ? currentUser.id : undefined;
-    Promise.all([api.clients.list(), api.projects.list(userId), api.invoices.list()])
+    setLoading(true);
+    setError(null);
+    return Promise.all([api.clients.list(), api.projects.list(userId), api.invoices.list()])
       .then(([nextClients, nextProjects, nextInvoices]) => {
         setClients(nextClients);
         setProjects(visibleProjects(nextProjects));
@@ -29,6 +32,10 @@ export function DashboardView() {
       })
       .finally(() => setLoading(false));
   }, [currentUser, isAdmin, visibleProjects]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const stats = useMemo(() => {
     const activeProjects = projects.filter((project) => project.status === "active").length;
@@ -49,11 +56,7 @@ export function DashboardView() {
 
   return (
     <div className="space-y-6">
-      {error ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          {error}. Start the API on port 4000, then refresh.
-        </div>
-      ) : null}
+      {error ? <ApiError message={error} onRetry={() => void load()} /> : null}
 
       {loading ? <p className="text-sm text-slate-500">Loading live workspace data...</p> : null}
 

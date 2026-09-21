@@ -1,3 +1,4 @@
+import { ApiError } from "@/components/ui/ApiError";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Field";
@@ -16,7 +17,7 @@ const emptyForm: Required<UpdateProfileInput> = {
 };
 
 export function ProfileSettings() {
-  const { profile, loading, error, updateProfile } = useProfile();
+  const { profile, loading, error, refresh, updateProfile } = useProfile();
   const { notify } = useToast();
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -50,7 +51,7 @@ export function ProfileSettings() {
   }
 
   if (error && !profile) {
-    return <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">{error}</p>;
+    return <ApiError message={error} onRetry={() => void refresh()} />;
   }
 
   return (

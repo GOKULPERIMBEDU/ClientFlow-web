@@ -1,5 +1,6 @@
 import { ActionHint, InfoTip } from "@/components/guide/InfoTip";
 import { TaskDetailsModal } from "@/components/tasks/TaskDetailsModal";
+import { ApiError } from "@/components/ui/ApiError";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -22,6 +23,7 @@ export function KanbanBoard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const userId = currentUser && !isAdmin ? currentUser.id : undefined;
@@ -30,16 +32,23 @@ export function KanbanBoard() {
     setProjects(allowed);
     setTasks(nextTasks.filter((task) => allowed.some((project) => project.id === task.projectId) || isAdmin));
     setProjectId((current) => (current && allowed.some((project) => project.id === current) ? current : ""));
+    setError(null);
   }, [currentUser, isAdmin, visibleProjects]);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     setLoading(true);
-    load()
+    return load()
       .catch((reason: unknown) => {
-        notify(reason instanceof Error ? reason.message : "Unable to load the board", "error");
+        const message = reason instanceof Error ? reason.message : "Unable to load the board";
+        setError(message);
+        notify(message, "error");
       })
       .finally(() => setLoading(false));
   }, [load, notify]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const addTask = async () => {
     if (!title.trim() || !projectId) {
@@ -104,6 +113,7 @@ export function KanbanBoard() {
 
   return (
     <div className="space-y-5">
+      {error ? <ApiError message={error} onRetry={() => void reload()} /> : null}
       <Card className="p-4">
         <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_auto]">
           <Field label="New task">

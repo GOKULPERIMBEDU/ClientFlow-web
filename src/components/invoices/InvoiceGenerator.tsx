@@ -1,4 +1,5 @@
 import { ActionHint, InfoTip } from "@/components/guide/InfoTip";
+import { ApiError } from "@/components/ui/ApiError";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -39,26 +40,34 @@ export function InvoiceGenerator() {
   ]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [nextClients, nextInvoices] = await Promise.all([api.clients.list(), api.invoices.list()]);
     setClients(nextClients);
     setInvoices(nextInvoices);
     setClientId((current) => current || nextClients[0]?.id || "");
+    setError(null);
   }, []);
 
   useEffect(() => {
     setInvoiceNumber(nextInvoiceNumber());
   }, []);
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     setLoading(true);
-    load()
+    return load()
       .catch((reason: unknown) => {
-        notify(reason instanceof Error ? reason.message : "Unable to load invoices", "error");
+        const message = reason instanceof Error ? reason.message : "Unable to load invoices";
+        setError(message);
+        notify(message, "error");
       })
       .finally(() => setLoading(false));
   }, [load, notify]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const applyInvoice = (invoice: Invoice) => {
     setSelectedId(invoice.id);
@@ -147,6 +156,7 @@ export function InvoiceGenerator() {
 
   return (
     <div className="space-y-6">
+      {error ? <ApiError message={error} onRetry={() => void reload()} /> : null}
       <Card className="p-4">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-semibold text-ink-900">Saved invoices</p>

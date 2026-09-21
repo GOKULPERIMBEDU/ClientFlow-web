@@ -1,3 +1,4 @@
+import { apiOrigin as originFromEnv, env } from "@/lib/env";
 import type {
   ApiFailure,
   ApiSuccess,
@@ -16,10 +17,8 @@ import type {
   UpdateTaskInput,
 } from "@/types/domain";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
-
 export function apiOrigin(): string {
-  return API_BASE.replace(/\/api\/?$/, "");
+  return originFromEnv();
 }
 
 export function resolveApiUrl(path: string): string {
@@ -27,6 +26,21 @@ export function resolveApiUrl(path: string): string {
     return path;
   }
   return `${apiOrigin()}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function requireApiBaseUrl(): string {
+  if (!env.apiBaseUrl) {
+    throw new Error("API base URL is not configured. Set VITE_API_BASE_URL in your environment.");
+  }
+  return env.apiBaseUrl;
+}
+
+function connectionError(): Error {
+  return new Error(
+    env.apiBaseUrl
+      ? `Unable to connect to the API at ${env.apiBaseUrl}.`
+      : "API base URL is not configured. Set VITE_API_BASE_URL in your environment.",
+  );
 }
 
 export interface UploadedFile {
@@ -38,27 +52,13 @@ export interface UploadedFile {
   uploadedAt: string;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  if (!API_BASE) {
-    throw new Error("VITE_API_BASE_URL is not configured");
-  }
-
-  let response: Response;
-
+async function parsePayload<T>(response: Response): Promise<T> {
+  let payload: ApiSuccess<T> | ApiFailure;
   try {
-    response = await fetch(`${API_BASE}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {}),
-      },
-      cache: "no-store",
-    });
+    payload = (await response.json()) as ApiSuccess<T> | ApiFailure;
   } catch {
-    throw new Error("Unable to reach the ClientFlow API. Confirm it is running.");
+    throw connectionError();
   }
-
-  const payload = (await response.json()) as ApiSuccess<T> | ApiFailure;
 
   if (!response.ok || !payload.success) {
     const message = payload.success ? "Request failed" : payload.error.message;
@@ -68,28 +68,41 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return payload.data;
 }
 
-async function uploadRequest<T>(path: string, body: FormData): Promise<T> {
-  if (!API_BASE) {
-    throw new Error("VITE_API_BASE_URL is not configured");
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const baseUrl = requireApiBaseUrl();
+  let response: Response;
+
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      cache: "no-store",
+    });
+  } catch {
+    throw connectionError();
   }
 
+  return parsePayload<T>(response);
+}
+
+async function uploadRequest<T>(path: string, body: FormData): Promise<T> {
+  const baseUrl = requireApiBaseUrl();
   let response: Response;
+
   try {
-    response = await fetch(`${API_BASE}${path}`, {
+    response = await fetch(`${baseUrl}${path}`, {
       method: "POST",
       body,
       cache: "no-store",
     });
   } catch {
-    throw new Error("Unable to reach the ClientFlow API. Confirm it is running.");
+    throw connectionError();
   }
 
-  const payload = (await response.json()) as ApiSuccess<T> | ApiFailure;
-  if (!response.ok || !payload.success) {
-    const message = payload.success ? "Request failed" : payload.error.message;
-    throw new Error(message);
-  }
-  return payload.data;
+  return parsePayload<T>(response);
 }
 
 export const api = {
