@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
   const port = Number.isFinite(parsedPort) && parsedPort > 0 ? parsedPort : undefined;
 
   return {
+    appType: "spa",
     plugins: [react()],
     resolve: {
       alias: {
